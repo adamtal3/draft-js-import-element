@@ -11,7 +11,7 @@ import {
 import {List, OrderedSet, Repeat, Seq} from 'immutable';
 import {BLOCK_TYPE, ENTITY_TYPE, INLINE_STYLE} from 'draft-js-utils';
 import {NODE_TYPE_ELEMENT, NODE_TYPE_TEXT} from 'synthetic-dom';
-import styleToCssString from './styleToCssString';
+import {string as styleToCssString} from 'to-style';
 
 import type {Set, IndexedSeq} from 'immutable';
 import type {
@@ -271,6 +271,10 @@ class BlockGenerator {
     }
   }
 
+  getStyleAttribute() {
+
+  }
+
   processInlineElement(element: DOMElement) {
     let tagName = element.nodeName.toLowerCase();
     if (tagName === 'br') {
@@ -282,15 +286,26 @@ class BlockGenerator {
     let entityKey = block.entityStack.slice(-1)[0];
     style = addStyleFromTagName(style, tagName, this.elementStyles);
     let styleAttribute = element.getAttribute('style');
+
+    if (!styleAttribute && element.attributes && element.attributes.length) {
+      for (let i in element.attributes) {
+        if (element.attributes[i] && element.attributes[i].length > 1 && element.attributes[i][0] === 'style') {
+          styleAttribute = element.attributes[i].slice(1).join(';');
+
+          break;
+        }
+      }
+    }
+
     if (styleAttribute) {
       const customCssMapToStyle = {};
-      const normalizeStyle = str => str.replace(/ /g, '').replace(/;/g, '');
+      const normalizeStyle = (str) => str.replace(/ /g, '').replace(/;/g, '');
 
       // Convert react styles to css string values
       Object.keys(this.customStyleMap).forEach((key) => {
         customCssMapToStyle[normalizeStyle(styleToCssString(this.customStyleMap[key]))] = key;
       });
-      
+
       for (let styleValue of styleAttribute.split(';')) {
         const styleAttr = normalizeStyle(styleValue);
         if (styleAttr) {
